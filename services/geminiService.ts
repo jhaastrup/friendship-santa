@@ -15,8 +15,8 @@ const GIFT_SCHEMA: Schema = {
   items: {
     type: Type.OBJECT,
     properties: {
-      title: { type: Type.STRING, description: "Name of the gift item" },
-      description: { type: Type.STRING, description: "Why this is a good gift based on interests. Mention if it has specific Nigerian cultural relevance." },
+      title: { type: Type.STRING, description: "Name of the gift item (mention specific brand if applicable)" },
+      description: { type: Type.STRING, description: "Why this is a good gift. Mention specific stores (e.g., Jumia, Dye Lab, Uncover) if relevant." },
       category: { 
         type: Type.STRING, 
         enum: ['Funny', 'Practical', 'Luxury', 'DIY', 'Sentimental', 'Other'],
@@ -40,13 +40,20 @@ export const generateGiftIdeas = async (
       I am playing Secret Santa. 
       My giftee is named ${receiverName}.
       
-      Context: The group consists of Nigerian friends (International/Nigerian context). 
-      Please suggest gifts that are culturally relevant to Nigerians (living in Nigeria or abroad) where appropriate, or generally great international gifts.
+      Target Audience Context: Modern/Urban Nigerian friends (living in Nigeria or abroad).
+      
+      Please suggest gifts that Nigerians actually want and shop for. 
+      Think beyond generic "African prints". Consider popular local and international brands frequented by Nigerians, such as:
+      - Fashion: Dye Lab, Kai Collective, Ri-Girl, Shop Bawsty, Adidas, Mo Accessories.
+      - Beauty/Self-care: Uncover Skincare, Beauty Hut, Bath & Body Works.
+      - Home/Kitchen: Radiance Cookware, Buchymix (Blenders/Air fryers), Miniso (Cute home gadgets).
+      - Lifestyle/Gifts: Smileys Africa, iFitness (Gym subscriptions), Jumia, Konga.
       
       Their interests are: ${interests.length > 0 ? interests.join(', ') : 'General popular items'}.
       ${notes ? `Additional notes/dislikes: ${notes}` : ''}
       
-      Please suggest 5 thoughtful, creative, and diverse gift ideas.
+      Please suggest 5 specific, trendy, and thoughtful gift ideas. 
+      For each idea, mention specific brands or types of products found at these stores if they fit the interest.
     `;
 
     const response = await ai.models.generateContent({
@@ -55,7 +62,7 @@ export const generateGiftIdeas = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: GIFT_SCHEMA,
-        systemInstruction: "You are a helpful holiday gift assistant. The users are Nigerian friends. Provide specific, actionable gift ideas. Mix globally popular items with items that have Nigerian cultural relevance (e.g., fashion, food, local brands) if they fit the interests. Prices can be in USD or Naira. Avoid generic gift cards unless specified."
+        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands (Kai Collective, Dye Lab, Uncover, etc.) and popular international brands (Adidas, Miniso). Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'iFitness Gym membership', 'Uncover Sunscreen', 'Dye Lab Kaftan', or 'Miniso plushies/organizers' if they match the user's interests. Prices can be in Naira (₦) or USD ($)."
       }
     });
 
