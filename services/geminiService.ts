@@ -16,7 +16,7 @@ const GIFT_SCHEMA: Schema = {
     type: Type.OBJECT,
     properties: {
       title: { type: Type.STRING, description: "Name of the gift item (mention specific brand if applicable)" },
-      description: { type: Type.STRING, description: "Why this is a good gift. Mention specific stores (e.g., Jumia, Dye Lab, Uncover) if relevant." },
+      description: { type: Type.STRING, description: "Why this is a good gift. Mention specific stores (e.g., Jumia, Oraimo, Uncover) if relevant." },
       category: { 
         type: Type.STRING, 
         enum: ['Funny', 'Practical', 'Luxury', 'DIY', 'Sentimental', 'Other'],
@@ -44,6 +44,8 @@ export const generateGiftIdeas = async (
       
       Please suggest gifts that Nigerians actually want and shop for. 
       Think beyond generic "African prints". Consider popular local and international brands frequented by Nigerians, such as:
+      - Tech/Gadgets: Apple (AirPods/Headphones), Oraimo (Earbuds/Watches), Meta Ray-Ban glasses, JBL Speakers.
+      - Work/Office: Standing desks (Jumia), Mechanical keyboards, Ergonomic mouse, Laptop stands.
       - Fashion: Dye Lab, Kai Collective, Ri-Girl, Shop Bawsty, Adidas, Mo Accessories.
       - Beauty/Self-care: Uncover Skincare, Beauty Hut, Bath & Body Works.
       - Home/Kitchen: Radiance Cookware, Buchymix (Blenders/Air fryers), Miniso (Cute home gadgets).
@@ -62,7 +64,7 @@ export const generateGiftIdeas = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: GIFT_SCHEMA,
-        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands (Kai Collective, Dye Lab, Uncover, etc.) and popular international brands (Adidas, Miniso). Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'iFitness Gym membership', 'Uncover Sunscreen', 'Dye Lab Kaftan', or 'Miniso plushies/organizers' if they match the user's interests. Prices can be in Naira (₦) or USD ($)."
+        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands (Kai Collective, Dye Lab, Uncover, etc.) and popular international brands (Adidas, Miniso, Apple, Oraimo, Meta). Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'iFitness Gym membership', 'Uncover Sunscreen', 'Oraimo FreePods', 'Standing Desk from Jumia', or 'Meta Ray-Bans' if they match the user's interests. Prices can be in Naira (₦) or USD ($)."
       }
     });
 
