@@ -1,0 +1,76 @@
+import React, { useState, useEffect } from 'react';
+import { GroupData, AppStep } from './types';
+import { SetupForm } from './components/SetupForm';
+import { RevealView } from './components/RevealView';
+import { Gift, Heart } from 'lucide-react';
+
+const STORAGE_KEY = 'friendship_santa_data';
+
+const App: React.FC = () => {
+  const [step, setStep] = useState<AppStep>(AppStep.SETUP);
+  const [groupData, setGroupData] = useState<GroupData | null>(null);
+
+  useEffect(() => {
+    // Attempt to restore session
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setGroupData(parsed);
+        setStep(AppStep.REVEAL);
+      } catch (e) {
+        console.error("Failed to load saved state", e);
+      }
+    }
+  }, []);
+
+  const handleGroupCreated = (data: GroupData) => {
+    setGroupData(data);
+    setStep(AppStep.REVEAL);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  };
+
+  const handleReset = () => {
+    if (window.confirm("Are you sure you want to delete this group and start over?")) {
+      setGroupData(null);
+      setStep(AppStep.SETUP);
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-b from-santa-snow to-white">
+      {/* Decorative Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-2 bg-repeat-x opacity-20" style={{ backgroundImage: 'linear-gradient(45deg, #D42426 25%, transparent 25%, transparent 50%, #D42426 50%, #D42426 75%, transparent 75%, transparent)', backgroundSize: '20px 20px' }}></div>
+      
+      {/* Header */}
+      <header className="py-6 px-4 md:px-8 text-center relative z-10">
+        <div className="flex items-center justify-center gap-3 mb-2">
+           <Gift className="text-santa-red w-8 h-8" />
+           <h1 className="font-display text-4xl font-bold text-santa-red">Friendship Santa</h1>
+        </div>
+        <p className="text-slate-500 text-sm font-medium tracking-wide uppercase">Gift Exchange Generator</p>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow w-full px-4 pb-12 relative z-10">
+        {step === AppStep.SETUP && (
+          <SetupForm onComplete={handleGroupCreated} />
+        )}
+
+        {step === AppStep.REVEAL && groupData && (
+          <RevealView groupData={groupData} onReset={handleReset} />
+        )}
+      </main>
+
+      {/* Footer */}
+      <footer className="py-6 text-center text-slate-400 text-sm relative z-10">
+        <p className="flex items-center justify-center gap-1">
+          Made with <Heart size={14} className="text-santa-red fill-current" /> for the holidays
+        </p>
+      </footer>
+    </div>
+  );
+};
+
+export default App;
