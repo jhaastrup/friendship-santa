@@ -16,13 +16,13 @@ const GIFT_SCHEMA: Schema = {
     type: Type.OBJECT,
     properties: {
       title: { type: Type.STRING, description: "Name of the gift item" },
-      description: { type: Type.STRING, description: "Why this is a good gift based on interests" },
+      description: { type: Type.STRING, description: "Why this is a good gift based on interests. Mention if it has specific Nigerian cultural relevance." },
       category: { 
         type: Type.STRING, 
         enum: ['Funny', 'Practical', 'Luxury', 'DIY', 'Sentimental', 'Other'],
         description: "Category of the gift"
       },
-      estimatedPrice: { type: Type.STRING, description: "Estimated price range, e.g., $20-$50" }
+      estimatedPrice: { type: Type.STRING, description: "Estimated price range, e.g., $20-$50 or ₦20,000-₦50,000" }
     },
     required: ["title", "description", "category"],
   }
@@ -40,6 +40,9 @@ export const generateGiftIdeas = async (
       I am playing Secret Santa. 
       My giftee is named ${receiverName}.
       
+      Context: The group consists of Nigerian friends (International/Nigerian context). 
+      Please suggest gifts that are culturally relevant to Nigerians (living in Nigeria or abroad) where appropriate, or generally great international gifts.
+      
       Their interests are: ${interests.length > 0 ? interests.join(', ') : 'General popular items'}.
       ${notes ? `Additional notes/dislikes: ${notes}` : ''}
       
@@ -52,7 +55,7 @@ export const generateGiftIdeas = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: GIFT_SCHEMA,
-        systemInstruction: "You are a helpful holiday gift assistant. You provide specific, actionable gift ideas based on user interests. Avoid generic gift cards unless specified."
+        systemInstruction: "You are a helpful holiday gift assistant. The users are Nigerian friends. Provide specific, actionable gift ideas. Mix globally popular items with items that have Nigerian cultural relevance (e.g., fashion, food, local brands) if they fit the interests. Prices can be in USD or Naira. Avoid generic gift cards unless specified."
       }
     });
 
