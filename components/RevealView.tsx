@@ -1,19 +1,37 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { GroupData, Friend } from '../types';
 import { getReceiverForGiver } from '../services/pairingService';
+import { generateShareUrl } from '../services/shareService';
 import { GiftSuggestions } from './GiftSuggestions';
 import { Button } from './Button';
-import { User, RefreshCw, ArrowLeft, Eye, EyeOff, Gift } from 'lucide-react';
+import { User, RefreshCw, ArrowLeft, Eye, Gift, Link as LinkIcon, Check, Copy } from 'lucide-react';
 
 interface RevealViewProps {
   groupData: GroupData;
   onReset: () => void;
+  isGuestMode?: boolean;
+  guestUser?: Friend | null;
 }
 
-export const RevealView: React.FC<RevealViewProps> = ({ groupData, onReset }) => {
-  const [selectedGiver, setSelectedGiver] = useState<Friend | null>(null);
+export const RevealView: React.FC<RevealViewProps> = ({ 
+  groupData, 
+  onReset, 
+  isGuestMode = false,
+  guestUser = null 
+}) => {
+  // If guestUser is provided, initialize selectedGiver with it
+  const [selectedGiver, setSelectedGiver] = useState<Friend | null>(guestUser);
   const [isRevealed, setIsRevealed] = useState(false);
   const [viewMode, setViewMode] = useState<'INDIVIDUAL' | 'MASTER'>('INDIVIDUAL');
+  const [shareUrl, setShareUrl] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Effect to ensure guest user is selected if in guest mode
+  useEffect(() => {
+    if (isGuestMode && guestUser) {
+      setSelectedGiver(guestUser);
+    }
+  }, [isGuestMode, guestUser]);
 
   const handleSelectGiver = (friend: Friend) => {
     setSelectedGiver(friend);
@@ -21,16 +39,26 @@ export const RevealView: React.FC<RevealViewProps> = ({ groupData, onReset }) =>
   };
 
   const handleBack = () => {
+    // Prevent going back in guest mode
+    if (isGuestMode) return;
     setSelectedGiver(null);
     setIsRevealed(false);
+  };
+
+  const generateLink = () => {
+    const url = generateShareUrl(groupData);
+    setShareUrl(url);
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
   };
 
   const receiver = selectedGiver 
     ? getReceiverForGiver(selectedGiver.id, groupData.pairings, groupData.friends) 
     : undefined;
 
-  // Master List View
-  if (viewMode === 'MASTER') {
+  // Master List View (Organizer Only)
+  if (viewMode === 'MASTER' && !isGuestMode) {
     return (
       <div className="max-w-2xl mx-auto space-y-6 animate-fade-in">
         <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm">
@@ -68,18 +96,27 @@ export const RevealView: React.FC<RevealViewProps> = ({ groupData, onReset }) =>
     );
   }
 
-  // Individual Reveal View (Main Flow)
+  // Individual Reveal View (Card)
   if (selectedGiver && receiver) {
     return (
       <div className="max-w-xl mx-auto animate-fade-in pb-20">
-        <button 
-          onClick={handleBack} 
-          className="mb-6 flex items-center text-slate-500 hover:text-santa-red transition-colors"
-        >
-          <ArrowLeft size={18} className="mr-1" /> Back to list
-        </button>
+        {!isGuestMode && (
+          <button 
+            onClick={handleBack} 
+            className="mb-6 flex items-center text-slate-500 hover:text-santa-red transition-colors"
+          >
+            <ArrowLeft size={18} className="mr-1" /> Back to list
+          </button>
+        )}
 
-        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+        <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 relative">
+          {/* Guest Mode Badge */}
+          {isGuestMode && (
+             <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 text-xs px-2 py-1 rounded-full border border-slate-200">
+               Guest View
+             </div>
+          )}
+
           <div className="bg-santa-snow p-8 text-center border-b border-slate-100">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full shadow-md mb-4 text-3xl">
               🎅
@@ -140,13 +177,21 @@ export const RevealView: React.FC<RevealViewProps> = ({ groupData, onReset }) =>
             )}
           </div>
         </div>
+
+        {/* Guest: Create your own Group CTA */}
+        {isGuestMode && (
+          <div className="mt-8 text-center">
+             <p className="text-slate-400 text-sm mb-2">Want to run your own Secret Santa?</p>
+             <a href="/" className="text-santa-red font-medium hover:underline text-sm">Start a New Group</a>
+          </div>
+        )}
       </div>
     );
   }
 
-  // Landing Grid
+  // Landing Grid (Host View Only)
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-3xl mx-auto space-y-8 animate-fade-in pb-20">
       <div className="text-center space-y-4">
         <h2 className="font-display text-4xl text-santa-red">{groupData.name}</h2>
         <div className="inline-block bg-white px-4 py-1.5 rounded-full shadow-sm border border-slate-100 text-sm text-slate-600">
@@ -172,20 +217,45 @@ export const RevealView: React.FC<RevealViewProps> = ({ groupData, onReset }) =>
         ))}
       </div>
 
-      <div className="flex justify-center gap-4 pt-8 border-t border-slate-200/50">
-        <button 
-          onClick={onReset}
-          className="text-slate-400 text-sm hover:text-slate-600 flex items-center gap-2"
-        >
-          <RefreshCw size={14} /> Reset Group
-        </button>
-        <span className="text-slate-300">|</span>
-        <button 
-          onClick={() => setViewMode('MASTER')}
-          className="text-slate-400 text-sm hover:text-santa-red flex items-center gap-2"
-        >
-          <Eye size={14} /> View Master List (Organizer Only)
-        </button>
+      {/* Host Controls */}
+      <div className="space-y-6 pt-8 border-t border-slate-200/50">
+        
+        {/* Share Section */}
+        <div className="bg-santa-snow p-6 rounded-2xl border border-slate-100 text-center">
+          <h3 className="font-semibold text-slate-800 mb-2 flex items-center justify-center gap-2">
+            <LinkIcon size={18} className="text-santa-red" />
+            Share with friends
+          </h3>
+          <p className="text-slate-500 text-sm mb-4">Send this link to the group. They'll need to enter their name to see their match.</p>
+          
+          <div className="flex justify-center">
+            {copied ? (
+               <Button variant="secondary" className="min-w-[200px]">
+                 <Check size={18} className="mr-2" /> Link Copied!
+               </Button>
+            ) : (
+               <Button onClick={generateLink} variant="primary" className="min-w-[200px] shadow-red-200">
+                 <Copy size={18} className="mr-2" /> Copy Group Link
+               </Button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-center gap-4">
+          <button 
+            onClick={onReset}
+            className="text-slate-400 text-sm hover:text-slate-600 flex items-center gap-2"
+          >
+            <RefreshCw size={14} /> Reset Group
+          </button>
+          <span className="text-slate-300">|</span>
+          <button 
+            onClick={() => setViewMode('MASTER')}
+            className="text-slate-400 text-sm hover:text-santa-red flex items-center gap-2"
+          >
+            <Eye size={14} /> View Master List (Organizer Only)
+          </button>
+        </div>
       </div>
     </div>
   );

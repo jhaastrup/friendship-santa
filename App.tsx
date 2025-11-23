@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { GroupData, AppStep } from './types';
+import { GroupData, AppStep, Friend } from './types';
 import { SetupForm } from './components/SetupForm';
 import { RevealView } from './components/RevealView';
+import { GuestLogin } from './components/GuestLogin';
+import { getGroupDataFromUrl } from './services/shareService';
 import { Gift, Heart } from 'lucide-react';
 
 const STORAGE_KEY = 'friendship_santa_data';
@@ -9,9 +11,20 @@ const STORAGE_KEY = 'friendship_santa_data';
 const App: React.FC = () => {
   const [step, setStep] = useState<AppStep>(AppStep.SETUP);
   const [groupData, setGroupData] = useState<GroupData | null>(null);
+  const [isGuest, setIsGuest] = useState(false);
+  const [guestUser, setGuestUser] = useState<Friend | null>(null);
 
   useEffect(() => {
-    // Attempt to restore session
+    // 1. Check for URL data (Guest Mode)
+    const sharedData = getGroupDataFromUrl();
+    if (sharedData) {
+      setGroupData(sharedData);
+      setIsGuest(true);
+      setStep(AppStep.REVEAL);
+      return;
+    }
+
+    // 2. Check for Local Storage (Host Mode / Previous Session)
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
@@ -27,6 +40,7 @@ const App: React.FC = () => {
   const handleGroupCreated = (data: GroupData) => {
     setGroupData(data);
     setStep(AppStep.REVEAL);
+    setIsGuest(false);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   };
 
@@ -34,8 +48,16 @@ const App: React.FC = () => {
     if (window.confirm("Are you sure you want to delete this group and start over?")) {
       setGroupData(null);
       setStep(AppStep.SETUP);
+      setIsGuest(false);
+      setGuestUser(null);
       localStorage.removeItem(STORAGE_KEY);
+      // Clean URL if it exists
+      window.history.replaceState({}, '', window.location.pathname);
     }
+  };
+
+  const handleGuestLogin = (friend: Friend) => {
+    setGuestUser(friend);
   };
 
   return (
@@ -49,17 +71,31 @@ const App: React.FC = () => {
            <Gift className="text-santa-red w-8 h-8" />
            <h1 className="font-display text-4xl font-bold text-santa-red">Friendship Santa</h1>
         </div>
-        <p className="text-slate-500 text-sm font-medium tracking-wide uppercase">Gift Exchange Generator</p>
+        {!isGuest && (
+          <p className="text-slate-500 text-sm font-medium tracking-wide uppercase">Gift Exchange Generator</p>
+        )}
       </header>
 
       {/* Main Content */}
       <main className="flex-grow w-full px-4 pb-12 relative z-10">
+        
         {step === AppStep.SETUP && (
           <SetupForm onComplete={handleGroupCreated} />
         )}
 
         {step === AppStep.REVEAL && groupData && (
-          <RevealView groupData={groupData} onReset={handleReset} />
+          <>
+            {isGuest && !guestUser ? (
+              <GuestLogin groupData={groupData} onLogin={handleGuestLogin} />
+            ) : (
+              <RevealView 
+                groupData={groupData} 
+                onReset={handleReset} 
+                isGuestMode={isGuest}
+                guestUser={guestUser}
+              />
+            )}
+          </>
         )}
       </main>
 
