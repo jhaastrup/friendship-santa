@@ -46,10 +46,10 @@ export const generateGiftIdeas = async (
       Think beyond generic "African prints". Consider popular local and international brands frequented by Nigerians, such as:
       - Tech/Gadgets: Apple (AirPods/Headphones), Oraimo (Earbuds/Watches), Meta Ray-Ban glasses, JBL Speakers.
       - Work/Office: Standing desks (Jumia), Mechanical keyboards, Ergonomic mouse, Laptop stands.
-      - Fashion: Dye Lab, Kai Collective, Ri-Girl, Shop Bawsty, Adidas, Mo Accessories.
+      - Fashion: Dye Lab, Kai Collective (especially the popular Nao tank top), Ri-Girl, Shop Bawsty, Adidas, Mo Accessories.
       - Beauty/Self-care: Uncover Skincare, Beauty Hut, Bath & Body Works.
       - Home/Kitchen: Radiance Cookware, Buchymix (Blenders/Air fryers), Miniso (Cute home gadgets).
-      - Lifestyle/Gifts: Smileys Africa, iFitness (Gym subscriptions), Jumia, Konga.
+      - Lifestyle/Gifts: Smileys Africa (Shoes, Gym clothes, Fancy socks), iFitness (Gym subscriptions), Jumia, Konga.
       
       Their interests are: ${interests.length > 0 ? interests.join(', ') : 'General popular items'}.
       ${notes ? `Additional notes/dislikes: ${notes}` : ''}
@@ -64,7 +64,7 @@ export const generateGiftIdeas = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: GIFT_SCHEMA,
-        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands (Kai Collective, Dye Lab, Uncover, etc.) and popular international brands (Adidas, Miniso, Apple, Oraimo, Meta). Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'iFitness Gym membership', 'Uncover Sunscreen', 'Oraimo FreePods', 'Standing Desk from Jumia', or 'Meta Ray-Bans' if they match the user's interests. Prices can be in Naira (₦) or USD ($)."
+        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands (Kai Collective, Dye Lab, Uncover, Smileys Africa etc.) and popular international brands (Adidas, Miniso, Apple, Oraimo, Meta). Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'iFitness Gym membership', 'Smileys Africa Gym Wear', 'Uncover Sunscreen', 'Kai Collective Nao Tank Top', 'Oraimo FreePods', 'Standing Desk from Jumia', or 'Meta Ray-Bans' if they match the user's interests. Prices can be in Naira (₦) or USD ($)."
       }
     });
 
