@@ -43,19 +43,31 @@ export const generateGiftIdeas = async (
       Target Audience Context: Modern/Urban Nigerian friends (living in Nigeria or abroad).
       
       Please suggest gifts that Nigerians actually want and shop for. 
-      Think beyond generic "African prints". Consider popular local and international brands frequented by Nigerians, such as:
-      - Tech/Gadgets: Apple (AirPods/Headphones), Oraimo (Earbuds/Watches), Meta Ray-Ban glasses, JBL Speakers.
-      - Work/Office: Standing desks (Jumia), Mechanical keyboards, Ergonomic mouse, Laptop stands.
-      - Fashion: Dye Lab, Kai Collective (especially the popular Nao tank top), Ri-Girl, Shop Bawsty, Adidas, Mo Accessories.
-      - Beauty/Self-care: Uncover Skincare, Beauty Hut, Bath & Body Works.
-      - Home/Kitchen: Radiance Cookware, Buchymix (Blenders/Air fryers), Miniso (Cute home gadgets).
-      - Lifestyle/Gifts: Smileys Africa (Shoes, Gym clothes, Fancy socks), iFitness (Gym subscriptions), Jumia, Konga.
+      Think beyond generic "African prints". Consider popular local and international brands frequented by Nigerians with these specific details:
+      
+      - **Fashion (High-End/Trendy)**: 
+        - Kai Collective (High-end, price point starting from ₦160,000+. Popular item: Nao tank top, mesh dresses).
+        - Shop Bawsty (Trendy female clothing/dresses).
+        - Dye Lab (Adire/Kaftans).
+        - Adidas, Mo Accessories.
+      - **Beauty/Hair**: 
+        - Ri-Girl (Luxury Wigs/Hair).
+        - Uncover Skincare, Beauty Hut, Bath & Body Works.
+      - **Lifestyle/Gifts**: 
+        - Smileys Africa (Premium lifestyle, Shoes, Gym clothes, Fancy socks. Price point starting from ₦40,000+).
+        - iFitness (Gym subscriptions).
+      - **Tech/Gadgets**: 
+        - Apple (AirPods/Headphones), Oraimo (Earbuds/Watches), Meta Ray-Ban glasses, JBL Speakers.
+        - Work: Standing desks (Jumia), Mechanical keyboards, Ergonomic mouse, Laptop stands.
+      - **Home/Kitchen**: 
+        - Radiance Cookware, Buchymix (Blenders/Air fryers), Miniso (Cute home gadgets).
       
       Their interests are: ${interests.length > 0 ? interests.join(', ') : 'General popular items'}.
       ${notes ? `Additional notes/dislikes: ${notes}` : ''}
       
       Please suggest 5 specific, trendy, and thoughtful gift ideas. 
       For each idea, mention specific brands or types of products found at these stores if they fit the interest.
+      Ensure the estimated price reflects the brand's actual pricing (e.g., Kai is expensive, Miniso is affordable).
     `;
 
     const response = await ai.models.generateContent({
@@ -64,7 +76,7 @@ export const generateGiftIdeas = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: GIFT_SCHEMA,
-        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands (Kai Collective, Dye Lab, Uncover, Smileys Africa etc.) and popular international brands (Adidas, Miniso, Apple, Oraimo, Meta). Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'iFitness Gym membership', 'Smileys Africa Gym Wear', 'Uncover Sunscreen', 'Kai Collective Nao Tank Top', 'Oraimo FreePods', 'Standing Desk from Jumia', or 'Meta Ray-Bans' if they match the user's interests. Prices can be in Naira (₦) or USD ($)."
+        systemInstruction: "You are a savvy personal shopper for a Nigerian friend group. You know the trending local brands and their specific niches: Ri-Girl sells Wigs, Shop Bawsty sells female clothing, Kai Collective is high-end luxury (₦160k+), Smileys Africa is premium lifestyle (₦40k+). You also know international tech staples like Apple, Oraimo, and Meta Ray-Bans. Avoid lazy stereotypes. Suggest specific items like 'Buchymix Blender', 'Ri-Girl Bone Straight Wig', 'Shop Bawsty Dress', 'Uncover Sunscreen', 'Kai Collective Nao Tank Top', 'Oraimo FreePods', 'Standing Desk from Jumia'. Prices should be realistic (in Naira ₦ or USD $)."
       }
     });
 
