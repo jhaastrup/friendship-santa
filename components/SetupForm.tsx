@@ -69,7 +69,7 @@ export const SetupForm: React.FC<SetupFormProps> = ({ onComplete }) => {
         <div className="grid md:grid-cols-2 gap-6">
           <Input 
             label="Group Name" 
-            placeholder="e.g. Office Holiday Party 2024" 
+            placeholder="e.g. Office Holiday Party 2025" 
             value={groupName}
             onChange={(e) => setGroupName(e.target.value)}
           />

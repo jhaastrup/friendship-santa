@@ -77,7 +77,8 @@ export const RevealView: React.FC<RevealViewProps> = ({
   };
 
   const handleNativeShare = async () => {
-    if (!generatedUrl || !navigator.share) return;
+    // Cast to any to avoid TS error TS2774 if definitions imply share is always present
+    if (!generatedUrl || !(navigator as any).share) return;
     try {
       await navigator.share({
         title: `Join ${groupData.name} Secret Santa`,
@@ -304,7 +305,7 @@ export const RevealView: React.FC<RevealViewProps> = ({
                 </Button>
 
                 {/* Native Share (Mobile) */}
-                {typeof navigator !== 'undefined' && navigator.share && (
+                {typeof navigator !== 'undefined' && (navigator as any).share && (
                   <Button 
                     onClick={handleNativeShare} 
                     variant="outline"
