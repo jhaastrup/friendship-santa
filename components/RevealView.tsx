@@ -4,7 +4,7 @@ import { getReceiverForGiver } from '../services/pairingService';
 import { createShortUrl } from '../services/shareService';
 import { GiftSuggestions } from './GiftSuggestions';
 import { Button } from './Button';
-import { User, RefreshCw, ArrowLeft, Eye, Gift, Link as LinkIcon, Check, Copy } from 'lucide-react';
+import { User, RefreshCw, ArrowLeft, Eye, Gift, Link as LinkIcon, Check, Copy, Share2 } from 'lucide-react';
 
 interface RevealViewProps {
   groupData: GroupData;
@@ -23,7 +23,10 @@ export const RevealView: React.FC<RevealViewProps> = ({
   const [selectedGiver, setSelectedGiver] = useState<Friend | null>(guestUser);
   const [isRevealed, setIsRevealed] = useState(false);
   const [viewMode, setViewMode] = useState<'INDIVIDUAL' | 'MASTER'>('INDIVIDUAL');
+  
+  // Sharing State
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   // Effect to ensure guest user is selected if in guest mode
@@ -45,19 +48,45 @@ export const RevealView: React.FC<RevealViewProps> = ({
     setIsRevealed(false);
   };
 
-  const generateAndCopyLink = async () => {
+  const handleGenerateLink = async () => {
     setIsGeneratingLink(true);
     try {
-      // Attempts to create a short link via cloud, falls back to local compressed if fails
       const url = await createShortUrl(groupData);
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      setGeneratedUrl(url);
     } catch (err) {
-      console.error("Failed to copy link", err);
-      alert("Failed to copy link to clipboard");
+      console.error("Failed to generate link", err);
+      alert("Could not generate share link. Please try again.");
     } finally {
       setIsGeneratingLink(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!generatedUrl) return;
+    
+    // Synchronous write works reliably on mobile because it's directly triggered by a click
+    navigator.clipboard.writeText(generatedUrl)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 3000);
+      })
+      .catch((err) => {
+        console.error("Clipboard write failed", err);
+        alert("Failed to copy automatically. Please copy the text from the box manually.");
+      });
+  };
+
+  const handleNativeShare = async () => {
+    if (!generatedUrl || !navigator.share) return;
+    try {
+      await navigator.share({
+        title: `Join ${groupData.name} Secret Santa`,
+        text: `Click the link to see who you're pairing with for the ${groupData.name} Secret Santa!`,
+        url: generatedUrl,
+      });
+    } catch (err) {
+      // User cancelled or share failed
+      console.log("Share cancelled or failed", err);
     }
   };
 
@@ -234,25 +263,59 @@ export const RevealView: React.FC<RevealViewProps> = ({
             <LinkIcon size={18} className="text-santa-red" />
             Share with friends
           </h3>
-          <p className="text-slate-500 text-sm mb-4">Send this link to the group. They'll need to enter their name to see their match.</p>
+          <p className="text-slate-500 text-sm mb-4">Send this link to the group so everyone can see their match.</p>
           
-          <div className="flex justify-center">
-            {copied ? (
-               <Button variant="secondary" className="min-w-[200px]">
-                 <Check size={18} className="mr-2" /> Link Copied!
-               </Button>
-            ) : (
-               <Button 
-                 onClick={generateAndCopyLink} 
+          {!generatedUrl ? (
+            <div className="flex justify-center">
+              <Button 
+                 onClick={handleGenerateLink} 
                  variant="primary" 
                  className="min-w-[200px] shadow-red-200"
                  isLoading={isGeneratingLink}
                >
-                 <Copy size={18} className="mr-2" /> 
-                 {isGeneratingLink ? 'Generating Link...' : 'Copy Group Link'}
+                 <LinkIcon size={18} className="mr-2" /> 
+                 {isGeneratingLink ? 'Creating Link...' : 'Create Invite Link'}
                </Button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-3 animate-fade-in">
+              <div className="flex items-center gap-2 max-w-md mx-auto">
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={generatedUrl}
+                  className="flex-1 text-sm text-slate-600 bg-white border border-slate-200 rounded-lg px-3 py-2 outline-none"
+                  onClick={(e) => e.currentTarget.select()}
+                />
+              </div>
+              
+              <div className="flex justify-center gap-3 flex-wrap">
+                {/* Manual Copy Button */}
+                <Button 
+                  onClick={handleCopyLink} 
+                  variant={copied ? "secondary" : "primary"}
+                  size="sm"
+                >
+                  {copied ? (
+                    <><Check size={16} className="mr-1" /> Copied!</>
+                  ) : (
+                    <><Copy size={16} className="mr-1" /> Copy Link</>
+                  )}
+                </Button>
+
+                {/* Native Share (Mobile) */}
+                {typeof navigator !== 'undefined' && navigator.share && (
+                  <Button 
+                    onClick={handleNativeShare} 
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Share2 size={16} className="mr-1" /> Share
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-center gap-4">
