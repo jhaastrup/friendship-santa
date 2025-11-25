@@ -2,15 +2,74 @@ import LZString from 'lz-string';
 import { GroupData, Friend, Pairing } from '../types';
 
 // Minified types for efficient URL storage
-// Structure: [name, interests, notes]
 type MinifiedFriend = [string, string[], string];
-// Structure: [giverIndex, receiverIndex]
 type MinifiedPairing = [number, number];
-// Structure: [groupName, organizerName, friends, pairings]
 type MinifiedGroupData = [string, string, MinifiedFriend[], MinifiedPairing[]];
 
-export const generateShareUrl = (data: GroupData): string => {
-  // 1. Minify Friends: Remove IDs and keys, just keep data
+const JSON_BLOB_API = "https://jsonblob.com/api/jsonBlob";
+
+/**
+ * Saves the group data to a remote JSON store (JSONBlob) to get a short ID.
+ * Returns the full short URL (e.g., domain.com/?id=uuid)
+ */
+export const createShortUrl = async (data: GroupData): Promise<string> => {
+  try {
+    const response = await fetch(JSON_BLOB_API, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error creating blob: ${response.statusText}`);
+    }
+
+    // The Location header contains the full URL to the blob
+    const location = response.headers.get('Location');
+    if (!location) throw new Error('No Location header received');
+
+    // Extract UUID from the location URL
+    const id = location.split('/').pop();
+    if (!id) throw new Error('Invalid ID received');
+
+    const url = new URL(window.location.href);
+    // Clear legacy params
+    url.searchParams.delete('data');
+    url.searchParams.delete('d');
+    // Set new ID param
+    url.searchParams.set('id', id);
+    
+    return url.toString();
+  } catch (error) {
+    console.error("Failed to create short link, falling back to compressed URL", error);
+    // Fallback to the long compressed URL if the API fails
+    return generateCompressedUrl(data);
+  }
+};
+
+/**
+ * Fetches group data from the remote store using the ID.
+ */
+export const getRemoteGroup = async (id: string): Promise<GroupData | null> => {
+  try {
+    const response = await fetch(`${JSON_BLOB_API}/${id}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data as GroupData;
+  } catch (error) {
+    console.error("Failed to fetch remote group", error);
+    return null;
+  }
+};
+
+/**
+ * Generates the long compressed URL (Client-side only)
+ */
+export const generateCompressedUrl = (data: GroupData): string => {
+  // 1. Minify Friends
   const friendsList = data.friends;
   const minFriends: MinifiedFriend[] = friendsList.map(f => [
     f.name,
@@ -18,7 +77,7 @@ export const generateShareUrl = (data: GroupData): string => {
     f.notes
   ]);
 
-  // 2. Minify Pairings: Use array indices instead of long UUID strings
+  // 2. Minify Pairings
   const minPairings: MinifiedPairing[] = data.pairings.map(p => {
     const giverIdx = friendsList.findIndex(f => f.id === p.giverId);
     const receiverIdx = friendsList.findIndex(f => f.id === p.receiverId);
@@ -37,62 +96,81 @@ export const generateShareUrl = (data: GroupData): string => {
   const compressed = LZString.compressToEncodedURIComponent(json);
   
   const url = new URL(window.location.href);
-  // Remove old 'data' param if it exists to keep URL clean
   url.searchParams.delete('data');
-  // Use 'd' for data to save 3 characters
+  url.searchParams.delete('id');
   url.searchParams.set('d', compressed);
   
   return url.toString();
 };
 
-export const getGroupDataFromUrl = (): GroupData | null => {
+/**
+ * Resolves GroupData from any supported URL format (ID, Compressed, or Legacy).
+ */
+export const resolveGroupDataFromUrl = async (): Promise<GroupData | null> => {
   const urlParams = new URLSearchParams(window.location.search);
   
-  // 1. Try new compact format ('d')
-  const compressedShort = urlParams.get('d');
-  if (compressedShort) {
-    try {
-      const json = LZString.decompressFromEncodedURIComponent(compressedShort);
-      if (!json) return null;
-      
-      const minData = JSON.parse(json) as MinifiedGroupData;
-      
-      // Rehydrate Friends (Generate new local IDs)
-      const friends: Friend[] = minData[2].map(mf => ({
-        id: crypto.randomUUID(),
-        name: mf[0],
-        interests: mf[1],
-        notes: mf[2]
-      }));
-
-      // Rehydrate Pairings (Map indices back to new IDs)
-      const pairings: Pairing[] = minData[3].map(mp => ({
-        giverId: friends[mp[0]].id,
-        receiverId: friends[mp[1]].id
-      }));
-
-      return {
-        name: minData[0],
-        organizerName: minData[1],
-        friends,
-        pairings
-      };
-    } catch (e) {
-      console.error("Failed to parse short url data", e);
-    }
+  // 1. Try Remote ID (Short Link)
+  const id = urlParams.get('id');
+  if (id) {
+    const remoteData = await getRemoteGroup(id);
+    if (remoteData) return remoteData;
   }
 
-  // 2. Fallback to legacy format ('data')
+  // 2. Try Compact Format ('d')
+  const compressedShort = urlParams.get('d');
+  if (compressedShort) {
+    return parseCompressedData(compressedShort);
+  }
+
+  // 3. Try Legacy Format ('data')
   const compressedLegacy = urlParams.get('data');
   if (compressedLegacy) {
-    try {
-      const json = LZString.decompressFromEncodedURIComponent(compressedLegacy);
-      if (!json) return null;
-      return JSON.parse(json) as GroupData;
-    } catch (error) {
-      console.error("Failed to parse legacy shared data", error);
-    }
+    return parseLegacyData(compressedLegacy);
   }
 
   return null;
+};
+
+// Helper to parse minified 'd' param
+const parseCompressedData = (compressed: string): GroupData | null => {
+  try {
+    const json = LZString.decompressFromEncodedURIComponent(compressed);
+    if (!json) return null;
+    
+    const minData = JSON.parse(json) as MinifiedGroupData;
+    
+    const friends: Friend[] = minData[2].map(mf => ({
+      id: crypto.randomUUID(),
+      name: mf[0],
+      interests: mf[1],
+      notes: mf[2]
+    }));
+
+    const pairings: Pairing[] = minData[3].map(mp => ({
+      giverId: friends[mp[0]].id,
+      receiverId: friends[mp[1]].id
+    }));
+
+    return {
+      name: minData[0],
+      organizerName: minData[1],
+      friends,
+      pairings
+    };
+  } catch (e) {
+    console.error("Failed to parse compressed data", e);
+    return null;
+  }
+};
+
+// Helper to parse legacy 'data' param
+const parseLegacyData = (compressed: string): GroupData | null => {
+  try {
+    const json = LZString.decompressFromEncodedURIComponent(compressed);
+    if (!json) return null;
+    return JSON.parse(json) as GroupData;
+  } catch (error) {
+    console.error("Failed to parse legacy data", error);
+    return null;
+  }
 };

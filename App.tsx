@@ -3,7 +3,7 @@ import { GroupData, AppStep, Friend } from './types';
 import { SetupForm } from './components/SetupForm';
 import { RevealView } from './components/RevealView';
 import { GuestLogin } from './components/GuestLogin';
-import { getGroupDataFromUrl } from './services/shareService';
+import { resolveGroupDataFromUrl } from './services/shareService';
 import { Gift, Heart } from 'lucide-react';
 
 const STORAGE_KEY = 'friendship_santa_data';
@@ -13,28 +13,40 @@ const App: React.FC = () => {
   const [groupData, setGroupData] = useState<GroupData | null>(null);
   const [isGuest, setIsGuest] = useState(false);
   const [guestUser, setGuestUser] = useState<Friend | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Check for URL data (Guest Mode)
-    const sharedData = getGroupDataFromUrl();
-    if (sharedData) {
-      setGroupData(sharedData);
-      setIsGuest(true);
-      setStep(AppStep.REVEAL);
-      return;
-    }
-
-    // 2. Check for Local Storage (Host Mode / Previous Session)
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    const initApp = async () => {
       try {
-        const parsed = JSON.parse(saved);
-        setGroupData(parsed);
-        setStep(AppStep.REVEAL);
-      } catch (e) {
-        console.error("Failed to load saved state", e);
+        // 1. Check for URL data (Guest Mode) - Async now to support Remote IDs
+        const sharedData = await resolveGroupDataFromUrl();
+        if (sharedData) {
+          setGroupData(sharedData);
+          setIsGuest(true);
+          setStep(AppStep.REVEAL);
+          setIsLoading(false);
+          return;
+        }
+
+        // 2. Check for Local Storage (Host Mode / Previous Session)
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            setGroupData(parsed);
+            setStep(AppStep.REVEAL);
+          } catch (e) {
+            console.error("Failed to load saved state", e);
+          }
+        }
+      } catch (error) {
+        console.error("Initialization error", error);
+      } finally {
+        setIsLoading(false);
       }
-    }
+    };
+
+    initApp();
   }, []);
 
   const handleGroupCreated = (data: GroupData) => {
@@ -59,6 +71,17 @@ const App: React.FC = () => {
   const handleGuestLogin = (friend: Friend) => {
     setGuestUser(friend);
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-santa-snow">
+        <div className="text-center space-y-4">
+          <Gift className="w-12 h-12 text-santa-red animate-bounce mx-auto" />
+          <p className="text-slate-600 font-medium animate-pulse">Loading Santa's List...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden bg-gradient-to-b from-santa-snow to-white">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { GroupData, Friend } from '../types';
 import { getReceiverForGiver } from '../services/pairingService';
-import { generateShareUrl } from '../services/shareService';
+import { createShortUrl } from '../services/shareService';
 import { GiftSuggestions } from './GiftSuggestions';
 import { Button } from './Button';
 import { User, RefreshCw, ArrowLeft, Eye, Gift, Link as LinkIcon, Check, Copy } from 'lucide-react';
@@ -23,7 +23,7 @@ export const RevealView: React.FC<RevealViewProps> = ({
   const [selectedGiver, setSelectedGiver] = useState<Friend | null>(guestUser);
   const [isRevealed, setIsRevealed] = useState(false);
   const [viewMode, setViewMode] = useState<'INDIVIDUAL' | 'MASTER'>('INDIVIDUAL');
-  const [shareUrl, setShareUrl] = useState('');
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [copied, setCopied] = useState(false);
 
   // Effect to ensure guest user is selected if in guest mode
@@ -45,12 +45,20 @@ export const RevealView: React.FC<RevealViewProps> = ({
     setIsRevealed(false);
   };
 
-  const generateLink = () => {
-    const url = generateShareUrl(groupData);
-    setShareUrl(url);
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+  const generateAndCopyLink = async () => {
+    setIsGeneratingLink(true);
+    try {
+      // Attempts to create a short link via cloud, falls back to local compressed if fails
+      const url = await createShortUrl(groupData);
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch (err) {
+      console.error("Failed to copy link", err);
+      alert("Failed to copy link to clipboard");
+    } finally {
+      setIsGeneratingLink(false);
+    }
   };
 
   const receiver = selectedGiver 
@@ -234,8 +242,14 @@ export const RevealView: React.FC<RevealViewProps> = ({
                  <Check size={18} className="mr-2" /> Link Copied!
                </Button>
             ) : (
-               <Button onClick={generateLink} variant="primary" className="min-w-[200px] shadow-red-200">
-                 <Copy size={18} className="mr-2" /> Copy Group Link
+               <Button 
+                 onClick={generateAndCopyLink} 
+                 variant="primary" 
+                 className="min-w-[200px] shadow-red-200"
+                 isLoading={isGeneratingLink}
+               >
+                 <Copy size={18} className="mr-2" /> 
+                 {isGeneratingLink ? 'Generating Link...' : 'Copy Group Link'}
                </Button>
             )}
           </div>
